@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>sports_management</title>
+    </head>
+    <body>
+        <nav>
+            <ul>
+                <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'manage_players' %}">Manage Players</a></li>
+                <li><a href="{% url 'manage_teams' %}">Manage Teams</a></li>
+                <li><a href="{% url 'matches_schedule' %}">Matches Schedule</a></li>
+                <li><a href="{% url 'standings' %}">Standings</a></li>
+            </ul>
+        </nav>
+
+        {% block content %}
+        <h1>Welcome to the Sports Management System</h1>
+        {% endblock %}
+    </body>
+</html>
