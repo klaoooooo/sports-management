@@ -1,5 +1,64 @@
 {% extends 'base.html' %}
-
 {% block content %}
-    <h1>Dashboard</h1>
+<div class="space-y-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-dark-card border border-dark-border rounded-2xl p-5">
+            <p class="text-xs text-slate-400">นักกีฬาในระบบ</p>
+            <h3 class="text-3xl font-bold text-white mt-2">{{ player_count }}</h3>
+        </div>
+        <div class="bg-dark-card border border-dark-border rounded-2xl p-5">
+            <p class="text-xs text-slate-400">จำนวนทีม</p>
+            <h3 class="text-3xl font-bold text-white mt-2">{{ team_count }}</h3>
+        </div>
+        <div class="bg-dark-card border border-dark-border rounded-2xl p-5">
+            <p class="text-xs text-slate-400">การแข่งขันทั้งหมด</p>
+            <h3 class="text-3xl font-bold text-white mt-2">{{ match_count }}</h3>
+            <p class="text-xs text-slate-500 mt-2">{{ finished_count }} แมตช์จบแล้ว</p>
+        </div>
+        <div class="bg-dark-card border border-dark-border rounded-2xl p-5">
+            <p class="text-xs text-slate-400">ประตูรวม</p>
+            <h3 class="text-3xl font-bold text-emerald-400 mt-2">{{ total_goals }}</h3>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-dark-card border border-dark-border rounded-2xl p-6">
+            <h3 class="font-bold text-white mb-4">
+                <i class="fa-solid fa-crown text-amber-400 mr-2"></i>ดาวซัลโวสูงสุด
+            </h3>
+            {% if top_scorer %}
+            <div class="bg-slate-800/50 rounded-xl p-4">
+                <p class="font-bold text-white text-lg">{{ top_scorer.name }}</p>
+                <p class="text-xs text-slate-400">{{ top_scorer.position }} | {{ top_scorer.team.name }}</p>
+                <p class="text-xs text-slate-400 mt-1">
+                    ลงเล่น <span class="text-white font-bold">{{ top_scorer.apps }}</span> นัด |
+                    ยิง <span class="text-emerald-400 font-bold">{{ top_scorer.goals }}</span> ประตู |
+                    แอสซิสต์ <span class="text-blue-400 font-bold">{{ top_scorer.assists }}</span>
+                </p>
+            </div>
+            {% else %}
+            <p class="text-xs text-slate-500">ยังไม่มีข้อมูล</p>
+            {% endif %}
+        </div>
+
+        <div class="lg:col-span-2 bg-dark-card border border-dark-border rounded-2xl p-6">
+            <h3 class="font-bold text-white mb-4">
+                <i class="fa-solid fa-clock-rotate-left text-brand-500 mr-2"></i>การแข่งขันล่าสุด
+            </h3>
+            <div class="space-y-3">
+                {% for m in recent_matches %}
+                <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3 flex justify-between items-center text-xs">
+                    <span class="font-semibold text-white">{{ m.team_a.name }}</span>
+                    <span class="px-3 py-1 bg-slate-800 rounded-lg font-bold text-white">
+                        {% if m.status == 'FINISHED' %}{{ m.score_a }} - {{ m.score_b }}{% else %}VS{% endif %}
+                    </span>
+                    <span class="font-semibold text-white">{{ m.team_b.name }}</span>
+                </div>
+                {% empty %}
+                <p class="text-xs text-slate-500">ยังไม่มีการแข่งขัน</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
