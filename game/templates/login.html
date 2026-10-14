@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - Sports Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: { extend: {
+                fontFamily: { sans: ['Prompt', 'sans-serif'] },
+                colors: {
+                    brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 900: '#14532d' },
+                    dark: { bg: '#0f172a', card: '#1e293b', border: '#334155' }
+                }
+            } }
+        }
+    </script>
+    <style>body { font-family: 'Prompt', sans-serif; background-color: #0f172a; color: #f8fafc; }</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 selection:bg-brand-500 selection:text-white">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <div class="inline-flex bg-gradient-to-tr from-brand-600 to-emerald-400 p-4 rounded-2xl shadow-lg shadow-brand-500/20 mb-4">
+                <i class="fa-solid fa-trophy text-3xl text-white"></i>
+            </div>
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-white via-slate-200 to-brand-500 bg-clip-text text-transparent">SPORTS HUB</h1>
+            <p class="text-xs text-slate-400 mt-1">ระบบจัดการการแข่งขันกีฬา</p>
+        </div>
+
+        <div class="bg-dark-card border border-dark-border rounded-2xl p-6 sm:p-8 shadow-2xl">
+            <h2 class="text-lg font-bold text-white mb-1">เข้าสู่ระบบ</h2>
+            <p class="text-xs text-slate-400 mb-6">กรอกชื่อผู้ใช้และรหัสผ่านเพื่อเข้าใช้งาน</p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="mb-4 px-3 py-2 rounded-xl text-xs border
+                        {% if message.tags == 'success' %}bg-emerald-500/10 border-emerald-500/30 text-emerald-300
+                        {% elif message.tags == 'error' %}bg-rose-500/10 border-rose-500/30 text-rose-300
+                        {% else %}bg-blue-500/10 border-blue-500/30 text-blue-300{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                <div class="mb-4 px-3 py-2 rounded-xl text-xs bg-rose-500/10 border border-rose-500/30 text-rose-300">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i> ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง
+                </div>
+            {% endif %}
+
+            <form method="post" class="space-y-4" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <div>
+                    <label for="{{ form.username.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1">ชื่อผู้ใช้ (Username)</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs z-10"></i>
+                        <div class="[&>input]:pl-9">{{ form.username }}</div>
+                    </div>
+                    {% for e in form.username.errors %}<p class="text-[11px] text-rose-400 mt-1">{{ e }}</p>{% endfor %}
+                </div>
+
+                <div>
+                    <label for="{{ form.password.id_for_label }}" class="block text-xs font-medium text-slate-300 mb-1">รหัสผ่าน (Password)</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs z-10"></i>
+                        <div class="[&>input]:pl-9">{{ form.password }}</div>
+                    </div>
+                    {% for e in form.password.errors %}<p class="text-[11px] text-rose-400 mt-1">{{ e }}</p>{% endfor %}
+                </div>
+
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2.5 rounded-xl text-sm transition shadow-lg shadow-brand-600/20">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> เข้าสู่ระบบ
+                </button>
+            </form>
+
+            <p class="text-center text-xs text-slate-400 mt-6">
+                ยังไม่มีบัญชี?
+                <a href="{% url 'register' %}" class="text-brand-500 hover:underline font-medium">สมัครสมาชิก</a>
+            </p>
+        </div>
+        <p class="text-center text-[11px] text-slate-600 mt-6">&copy; 2026 Sports Management System</p>
+    </div>
+</body>
+</html>
