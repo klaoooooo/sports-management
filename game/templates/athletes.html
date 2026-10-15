@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Athletes{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-wrap justify-between items-center gap-3 bg-dark-card border border-dark-border p-5 rounded-2xl">
+        <div><h2 class="text-xl font-bold">Athletes</h2><p class="text-xs text-slate-400 mt-1">{% if role == 'agent' %}คุณจัดการนักกีฬาของ {{ agent_country }} ได้{% else %}รายชื่อนักกีฬาทั้งหมด{% endif %}</p></div>
+        <div class="flex gap-2 text-xs">
+            <input id="q" oninput="filterRows()" placeholder="ค้นหา BIB / ชื่อ / ประเทศ" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 w-56">
+            <select id="cf" onchange="filterRows()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2"><option value="">ทุกประเทศ</option>{% for c in countries %}<option>{{ c }}</option>{% endfor %}</select>
+            {% if can_manage_athletes %}<button onclick="openAthlete()" class="bg-brand-600 hover:bg-brand-500 px-4 py-2 rounded-xl"><i class="fa-solid fa-plus mr-1"></i>Add athlete</button>{% endif %}
+        </div>
+    </div>
+    <div class="bg-dark-card border border-dark-border rounded-2xl overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-900/80 text-xs text-slate-400"><tr><th class="py-3 px-4">BIB</th><th class="px-3">Country</th><th class="px-3 text-left">Name</th><th class="px-3">Gender</th><th class="px-3">Class</th><th class="px-3">DOB</th><th></th></tr></thead>
+            <tbody class="divide-y divide-slate-800/60" id="rows">
+            {% for a in athletes %}
+            <tr class="text-center hover:bg-slate-800/40" data-text="{{ a.bib }} {{ a.full_name }} {{ a.country }}" data-country="{{ a.country }}">
+                <td class="py-3 px-4">{{ a.bib }}</td><td>{{ a.country }}</td>
+                <td class="text-left font-medium"><a href="{% url 'athlete_detail' a.id %}" class="hover:text-brand-400">{{ a.full_name }}</a></td>
+                <td>{{ a.gender }}</td><td>{{ a.classification }}</td><td class="text-xs text-slate-400">{{ a.date_of_birth|date:"Y-m-d" }}</td>
+                <td class="px-3 whitespace-nowrap">{% if a.can_manage %}
+                    <button onclick="openAthlete({{ a.id }})" class="text-xs text-slate-300 hover:text-white mr-2"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button onclick="deleteAthlete({{ a.id }})" class="text-xs text-rose-400"><i class="fa-solid fa-trash"></i></button>{% endif %}</td>
+            </tr>
+            {% empty %}<tr><td colspan="7" class="text-center py-10 text-slate-500">ยังไม่มีนักกีฬา</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if can_manage_athletes %}
+<div id="modal-athlete" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-dark-card border border-dark-border rounded-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+        <button onclick="closeModal('modal-athlete')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        <h3 id="at-title" class="text-lg font-bold mb-4">Add athlete</h3>
+        <input type="hidden" id="at-id">
+        <div class="grid grid-cols-2 gap-3 text-xs">
+            <label>First name<input id="at-first" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Last name<input id="at-last" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Country (เช่น THA)<input id="at-country" maxlength="5" {% if role == 'agent' %}value="{{ agent_country }}" readonly{% endif %} class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm uppercase"></label>
+            <label>BIB<input id="at-bib" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Gender<select id="at-gender" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"><option>Men</option><option>Women</option></select></label>
+            <label>Classification (เช่น T34)<input id="at-class" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Date of birth<input type="date" id="at-dob" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Phone<input id="at-phone" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label class="col-span-2">Email<input id="at-email" type="email" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+        </div>
+        <div class="flex justify-end gap-3 pt-4">
+            <button onclick="closeModal('modal-athlete')" class="px-4 py-2 text-xs text-slate-400">Cancel</button>
+            <button onclick="saveAthlete()" class="bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-xl text-xs font-medium">Save athlete</button>
+        </div>
+    </div>
+</div>
+{{ athletes_json|json_script:"athletes-data" }}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterRows() {
+    const q = val('q').toLowerCase(), c = val('cf');
+    document.querySelectorAll('#rows tr[data-text]').forEach(tr => {
+        tr.style.display = tr.dataset.text.toLowerCase().includes(q) && (!c || tr.dataset.country === c) ? '' : 'none';
+    });
+}
+</script>
+{% if can_manage_athletes %}
+<script>
+const ATHLETES = JSON.parse(document.getElementById('athletes-data').textContent);
+function openAthlete(id) {
+    const a = ATHLETES.find(x => x.id === id) || {};
+    document.getElementById('at-title').innerText = id ? 'Edit athlete' : 'Add athlete';
+    document.getElementById('at-id').value = a.id || '';
+    document.getElementById('at-first').value = a.first_name || '';
+    document.getElementById('at-last').value = a.last_name || '';
+    {% if role != 'agent' %}document.getElementById('at-country').value = a.country || '';{% endif %}
+    document.getElementById('at-bib').value = a.bib || '';
+    document.getElementById('at-gender').value = a.gender || 'Men';
+    document.getElementById('at-class').value = a.classification || '';
+    document.getElementById('at-dob').value = a.date_of_birth || '';
+    document.getElementById('at-phone').value = a.phone_number || '';
+    document.getElementById('at-email').value = a.email || '';
+    openModal('modal-athlete');
+}
+function saveAthlete() {
+    api('/api/athlete/save/', {
+        id: val('at-id') || null, first_name: val('at-first'), last_name: val('at-last'), country: val('at-country'),
+        bib: val('at-bib'), gender: val('at-gender'), classification: val('at-class'),
+        date_of_birth: val('at-dob'), phone_number: val('at-phone'), email: val('at-email')
+    }).then(() => location.reload());
+}
+function deleteAthlete(id) { if (confirm('ลบนักกีฬาคนนี้? (ผลการแข่งขันของเขาจะถูกลบด้วย)')) api(`/api/athlete/${id}/delete/`).then(() => location.reload()); }
+</script>
+{% endif %}
+{% endblock %}

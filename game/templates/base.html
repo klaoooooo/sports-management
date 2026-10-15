@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sports Management System</title>
+    <title>{% block title %}Para Athletics Hub{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,54 +12,60 @@
             theme: { extend: {
                 fontFamily: { sans: ['Prompt', 'sans-serif'] },
                 colors: {
-                    brand: { 500: '#22c55e', 600: '#16a34a' },
+                    brand: { 400: '#4ade80', 500: '#22c55e', 600: '#16a34a' },
                     dark: { bg: '#0f172a', card: '#1e293b', border: '#334155' }
                 }
             }}
         }
     </script>
-    <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #0f172a; color: #f8fafc; }
-    </style>
+    <style>body { font-family: 'Prompt', sans-serif; background-color: #0f172a; color: #f8fafc; }</style>
 </head>
 <body class="min-h-screen flex flex-col">
-
+{% with n=request.resolver_match.url_name %}
 <header class="bg-dark-card border-b border-dark-border sticky top-0 z-40 shadow-lg">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-            <div class="flex items-center space-x-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 py-2 min-h-16">
+            <a href="{% url 'medals' %}" class="flex items-center space-x-3">
                 <div class="bg-gradient-to-tr from-brand-600 to-emerald-400 p-2.5 rounded-xl">
                     <i class="fa-solid fa-trophy text-xl text-white"></i>
                 </div>
-                <span class="text-xl font-bold text-white">SPORTS HUB</span>
-            </div>
-            <nav class="hidden md:flex space-x-1">
-                <a href="{% url 'dashboard' %}" class="px-3.5 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.url_name == 'dashboard' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
-                    <i class="fa-solid fa-chart-pie mr-1"></i>ภาพรวม
-                </a>
-                <a href="{% url 'manage_players' %}" class="px-3.5 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.url_name == 'manage_players' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
-                    <i class="fa-solid fa-users mr-1"></i>นักกีฬา
-                </a>
-                <a href="{% url 'manage_teams' %}" class="px-3.5 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.url_name == 'manage_teams' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
-                    <i class="fa-solid fa-shield-halved mr-1"></i>ทีม
-                </a>
-                <a href="{% url 'schedule' %}" class="px-3.5 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.url_name == 'schedule' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
-                    <i class="fa-solid fa-calendar-days mr-1"></i>ตารางแข่ง
-                </a>
-                <a href="{% url 'standings' %}" class="px-3.5 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.url_name == 'standings' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}">
-                    <i class="fa-solid fa-list-ol mr-1"></i>ตารางคะแนน
-                </a>
+                <span class="text-xl font-bold text-white">PARA ATHLETICS</span>
+            </a>
+            <nav class="flex flex-wrap gap-1">
+                <a href="{% url 'medals' %}" class="px-3.5 py-2 rounded-lg text-sm font-medium {% if n == 'medals' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}"><i class="fa-solid fa-medal mr-1"></i>Medals</a>
+                <a href="{% url 'events' %}" class="px-3.5 py-2 rounded-lg text-sm font-medium {% if n == 'events' or n == 'event_detail' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}"><i class="fa-solid fa-calendar-days mr-1"></i>Events</a>
+                <a href="{% url 'results' %}" class="px-3.5 py-2 rounded-lg text-sm font-medium {% if n == 'results' or n == 'result_detail' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}"><i class="fa-solid fa-list-ol mr-1"></i>Results</a>
+                <a href="{% url 'athletes' %}" class="px-3.5 py-2 rounded-lg text-sm font-medium {% if n == 'athletes' or n == 'athlete_detail' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-slate-800{% endif %}"><i class="fa-solid fa-users mr-1"></i>Athletes</a>
             </nav>
+            <div class="flex items-center gap-2 text-xs">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'me' %}" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700">
+                        <i class="fa-solid fa-user mr-1"></i>{{ user.username }} <span class="text-brand-400">({{ role }})</span>
+                    </a>
+                    <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+                        <button class="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20"><i class="fa-solid fa-right-from-bracket mr-1"></i>Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white hover:bg-brand-500">Login</a>
+                    <a href="{% url 'register' %}" class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700">Register</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </header>
+{% endwith %}
 
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+    {% if messages %}
+        {% for message in messages %}
+        <div class="mb-4 px-4 py-3 rounded-xl text-sm border {% if message.tags == 'error' %}bg-rose-500/10 border-rose-500/30 text-rose-300{% elif message.tags == 'success' %}bg-emerald-500/10 border-emerald-500/30 text-emerald-300{% else %}bg-blue-500/10 border-blue-500/30 text-blue-300{% endif %}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
     {% block content %}{% endblock %}
 </main>
 
 <footer class="bg-dark-card border-t border-dark-border py-6 mt-12 text-center text-xs text-slate-500">
-    Sports Management System &copy; 2026
+    Para Athletics Management System &copy; 2026
 </footer>
 
 <script>
@@ -68,9 +74,15 @@ function api(url, data) {
     return fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-        body: JSON.stringify(data)
-    }).then(r => r.json());
+        body: JSON.stringify(data || {})
+    }).then(r => r.json()).then(res => {
+        if (res.status !== 'ok') { alert(res.message || 'เกิดข้อผิดพลาด'); throw new Error(res.message); }
+        return res;
+    });
 }
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+const val = id => document.getElementById(id).value;
 </script>
 {% block scripts %}{% endblock %}
 </body>

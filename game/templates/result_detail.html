@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Result - {{ event.name }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-dark-card border border-dark-border p-5 rounded-2xl">
+        <a href="{% url 'results' %}" class="text-xs text-slate-400 hover:text-white"><i class="fa-solid fa-arrow-left mr-1"></i>Results</a>
+        <div class="flex flex-wrap justify-between gap-3 mt-2 items-center">
+            <div><h2 class="text-2xl font-bold">[{{ event.number }}] {{ event.name }} <span class="text-base text-slate-400 font-normal">{{ event.gender }} {{ event.classification }} · {{ event.stage }}</span></h2>
+                <p class="text-xs text-slate-400 mt-1">{{ event.date_time|date:"d M Y H:i" }} · หน่วยคะแนน: {% if event.score_format == 'time' %}เวลา (วินาที หรือ m:ss.ss){% else %}ระยะ (เมตร){% endif %}</p></div>
+            {% if can_edit %}
+            <div class="flex items-center gap-2 text-xs">
+                <label>Status
+                <select id="status" class="ml-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5">
+                    {% for v, l in event.STATUS %}<option value="{{ v }}" {% if event.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+                </select></label>
+            </div>
+            {% else %}<span class="text-xs px-3 py-1 rounded bg-slate-800">{{ event.status }}</span>{% endif %}
+        </div>
+    </div>
+
+    {% if not show_scores %}<div class="text-sm text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3"><i class="fa-solid fa-satellite-dish mr-1"></i>กำลังแข่งขัน ผลจะแสดงเมื่อประกาศผลอย่างเป็นทางการ</div>{% endif %}
+
+    <div class="bg-dark-card border border-dark-border rounded-2xl overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-900/80 text-xs text-slate-400"><tr>
+                <th class="py-3 px-3">Rank</th><th class="px-3">BIB</th><th class="px-3">Country</th><th class="px-3">Class</th><th class="px-3 text-left">Athlete</th>
+                {% if show_scores %}<th class="px-3">Score</th><th class="px-3">Points</th><th class="px-3">Medal</th>{% endif %}</tr></thead>
+            <tbody id="rows" class="divide-y divide-slate-800/60">
+            {% for e in entries %}
+            <tr class="text-center hover:bg-slate-800/40" data-id="{{ e.id }}">
+                <td class="py-2 px-3">{% if can_edit %}<input type="number" min="1" value="{{ e.rank|default_if_none:'' }}" class="f-rank w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center">{% else %}{% if show_scores %}{{ e.rank|default:"-" }}{% else %}-{% endif %}{% endif %}</td>
+                <td>{{ e.athlete.bib }}</td><td>{{ e.athlete.country }}</td><td>{{ e.athlete.classification }}</td>
+                <td class="text-left font-medium">{{ e.athlete.full_name }}</td>
+                {% if show_scores %}
+                <td class="px-3">{% if can_edit %}<input value="{% if e.score_value is not None %}{{ e.score_value|floatformat:2 }}{% endif %}" placeholder="14.98" class="f-score w-24 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center">{% else %}{{ e.score_display }}{% endif %}</td>
+                <td class="px-3">{% if can_edit %}<input type="number" min="0" value="{{ e.point }}" class="f-point w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center">{% else %}<span class="font-bold text-brand-400">{{ e.point }}</span>{% endif %}</td>
+                <td class="px-3">{% if can_edit %}<select class="f-medal bg-slate-900 border border-slate-700 rounded-lg px-2 py-1">
+                    <option value="0" {% if e.medal == 0 %}selected{% endif %}>-</option><option value="1" {% if e.medal == 1 %}selected{% endif %}>Gold</option>
+                    <option value="2" {% if e.medal == 2 %}selected{% endif %}>Silver</option><option value="3" {% if e.medal == 3 %}selected{% endif %}>Bronze</option></select>
+                    {% else %}{% if e.medal == 1 %}<span class="text-amber-400">● Gold</span>{% elif e.medal == 2 %}<span class="text-slate-300">● Silver</span>{% elif e.medal == 3 %}<span class="text-amber-700">● Bronze</span>{% else %}-{% endif %}{% endif %}</td>
+                {% endif %}
+            </tr>
+            {% empty %}<tr><td colspan="8" class="text-center py-8 text-slate-500">ยังไม่มีนักกีฬาใน event นี้</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if can_edit %}
+    <div class="bg-dark-card border border-dark-border rounded-2xl p-5 flex flex-wrap gap-3 items-center">
+        <button onclick="saveResult(true)" class="bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-xl text-xs font-medium"><i class="fa-solid fa-calculator mr-1"></i>Save &amp; calculate points + medals</button>
+        <button onclick="saveResult(false)" class="bg-slate-700 hover:bg-slate-600 px-5 py-2 rounded-xl text-xs font-medium">Save manual values</button>
+        <p class="text-xs text-slate-400">คำนวณอัตโนมัติจะเขียนทับ rank/points/medal · "Save manual" เก็บค่าที่แก้ด้วยมือตามที่กรอก</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}{% if can_edit %}
+<script>
+function saveResult(recalc) {
+    const entries = [...document.querySelectorAll('#rows tr[data-id]')].map(tr => ({
+        id: tr.dataset.id,
+        score: tr.querySelector('.f-score').value,
+        rank: tr.querySelector('.f-rank').value,
+        point: tr.querySelector('.f-point').value,
+        medal: tr.querySelector('.f-medal').value,
+    }));
+    api('/api/result/{{ event.id }}/save/', {entries, recalc, status: val('status')}).then(() => location.reload());
+}
+</script>{% endif %}{% endblock %}

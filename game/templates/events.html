@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Events{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-wrap justify-between items-center gap-3 bg-dark-card border border-dark-border p-5 rounded-2xl">
+        <div><h2 class="text-xl font-bold">Events</h2><p class="text-xs text-slate-400 mt-1">ตารางการแข่งขันกรีฑา</p></div>
+        <div class="flex flex-wrap gap-2 text-xs">
+            <a href="{% url 'events' %}" class="px-3 py-1.5 rounded-lg {% if not status %}bg-brand-600{% else %}bg-slate-800{% endif %}">All</a>
+            <a href="?status=start-list" class="px-3 py-1.5 rounded-lg {% if status == 'start-list' %}bg-brand-600{% else %}bg-slate-800{% endif %}">Start list</a>
+            <a href="?status=live" class="px-3 py-1.5 rounded-lg {% if status == 'live' %}bg-brand-600{% else %}bg-slate-800{% endif %}">Live</a>
+            <a href="?status=result" class="px-3 py-1.5 rounded-lg {% if status == 'result' %}bg-brand-600{% else %}bg-slate-800{% endif %}">Result</a>
+            {% if is_admin %}<button onclick="openEvent()" class="bg-brand-600 hover:bg-brand-500 px-4 py-1.5 rounded-lg"><i class="fa-solid fa-plus mr-1"></i>Create event</button>{% endif %}
+        </div>
+    </div>
+
+    <div class="bg-dark-card border border-dark-border rounded-2xl overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-900/80 text-xs text-slate-400"><tr>
+                <th class="py-3 px-4 text-left">Date &amp; time</th><th class="py-3 px-3">No.</th><th class="py-3 px-3 text-left">Event</th>
+                <th class="py-3 px-3">Gender</th><th class="py-3 px-3">Class</th><th class="py-3 px-3">Stage</th>
+                <th class="py-3 px-3">Athletes</th><th class="py-3 px-3">Judge</th><th class="py-3 px-3">Status</th><th class="py-3 px-3"></th></tr></thead>
+            <tbody class="divide-y divide-slate-800/60">
+            {% for e in events %}
+            <tr class="hover:bg-slate-800/40 text-center">
+                <td class="py-3 px-4 text-left text-xs">{{ e.date_time|date:"d M Y H:i" }}</td>
+                <td class="px-3">{{ e.number }}</td>
+                <td class="px-3 text-left font-semibold"><a href="{% url 'event_detail' e.id %}" class="hover:text-brand-400">{{ e.name }}</a></td>
+                <td class="px-3">{{ e.gender }}</td><td class="px-3">{{ e.classification }}</td><td class="px-3">{{ e.stage }}</td>
+                <td class="px-3">{{ e.n }}</td>
+                <td class="px-3 text-xs text-slate-400">{{ e.judge.username|default:"-" }}</td>
+                <td class="px-3"><span class="text-xs px-2 py-0.5 rounded {% if e.status == 'live' %}bg-rose-500/20 text-rose-300{% elif e.status == 'result' %}bg-emerald-500/20 text-emerald-300{% else %}bg-slate-800 text-slate-300{% endif %}">{{ e.status }}</span></td>
+                <td class="px-3 whitespace-nowrap">
+                    <a href="{% url 'event_detail' e.id %}" class="text-xs text-slate-300 hover:text-white mr-2"><i class="fa-solid fa-eye"></i></a>
+                    {% if is_admin %}
+                    <button onclick="openEvent({{ e.id }})" class="text-xs text-slate-300 hover:text-white mr-2"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button onclick="deleteEvent({{ e.id }})" class="text-xs text-rose-400"><i class="fa-solid fa-trash"></i></button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}<tr><td colspan="10" class="text-center py-10 text-slate-500">ยังไม่มี event</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if is_admin %}
+<div id="modal-event" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-dark-card border border-dark-border rounded-2xl max-w-lg w-full p-6 relative max-h-[90vh] overflow-y-auto">
+        <button onclick="closeModal('modal-event')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        <h3 id="ev-title" class="text-lg font-bold mb-4">Create event</h3>
+        <input type="hidden" id="ev-id">
+        <div class="grid grid-cols-2 gap-3 text-xs">
+            <label>Number<input id="ev-number" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Event name (เช่น 100 m)<input id="ev-name" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Type<select id="ev-type" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"><option>Track</option><option>Field</option></select></label>
+            <label>Sub type (ไม่บังคับ)<input id="ev-sub" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Gender<select id="ev-gender" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"><option>Men</option><option>Women</option><option>Mixed</option></select></label>
+            <label>Classification<input id="ev-class" placeholder="T34 หรือ T12/13/20" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Stage<select id="ev-stage" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"><option>heat</option><option>semi-final</option><option selected>final</option></select></label>
+            <label>Date &amp; time<input type="datetime-local" id="ev-dt" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label class="col-span-2">Judge (ไม่บังคับ)<select id="ev-judge" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"><option value="">- ไม่กำหนด -</option>{% for j in judges %}<option value="{{ j.id }}">{{ j.username }}</option>{% endfor %}</select></label>
+            <label class="col-span-2">Location<input id="ev-loc" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+        </div>
+        <div class="flex justify-end gap-3 pt-4">
+            <button onclick="closeModal('modal-event')" class="px-4 py-2 text-xs text-slate-400">Cancel</button>
+            <button onclick="saveEvent()" class="bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-xl text-xs font-medium">Save event</button>
+        </div>
+    </div>
+</div>
+{{ events_json|json_script:"events-data" }}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}{% if is_admin %}
+<script>
+const EVENTS = JSON.parse(document.getElementById('events-data').textContent);
+function openEvent(id) {
+    const e = EVENTS.find(x => x.id === id) || {};
+    document.getElementById('ev-title').innerText = id ? 'Edit event' : 'Create event';
+    document.getElementById('ev-id').value = e.id || '';
+    document.getElementById('ev-number').value = e.number || '';
+    document.getElementById('ev-name').value = e.name || '';
+    document.getElementById('ev-type').value = e.type || 'Track';
+    document.getElementById('ev-sub').value = e.sub_type || '';
+    document.getElementById('ev-gender').value = e.gender || 'Men';
+    document.getElementById('ev-class').value = e.classification || '';
+    document.getElementById('ev-stage').value = e.stage || 'final';
+    document.getElementById('ev-dt').value = e.date_time || '';
+    document.getElementById('ev-judge').value = e.judge_id || '';
+    document.getElementById('ev-loc').value = e.location || '';
+    openModal('modal-event');
+}
+function saveEvent() {
+    api('/api/event/save/', {
+        id: val('ev-id') || null, number: val('ev-number'), name: val('ev-name'), type: val('ev-type'),
+        sub_type: val('ev-sub'), gender: val('ev-gender'), classification: val('ev-class'),
+        stage: val('ev-stage'), date_time: val('ev-dt'), judge_id: val('ev-judge') || null, location: val('ev-loc')
+    }).then(() => location.reload());
+}
+function deleteEvent(id) { if (confirm('ลบ event นี้? (รายชื่อนักกีฬาและผลจะถูกลบด้วย)')) api(`/api/event/${id}/delete/`).then(() => location.reload()); }
+</script>{% endif %}{% endblock %}

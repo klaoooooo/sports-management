@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+<div class="space-y-6 max-w-3xl">
+    <div class="bg-dark-card border border-dark-border p-6 rounded-2xl">
+        <h2 class="text-xl font-bold">{{ user.username }}</h2>
+        <p class="text-sm text-slate-400 mt-1">Role: <span class="text-brand-400">{{ role }}</span>{% if user.profile.country %} · {{ user.profile.country }}{% endif %}</p>
+    </div>
+    {% if athlete %}
+    <form method="post" class="bg-dark-card border border-dark-border p-6 rounded-2xl space-y-4">{% csrf_token %}
+        <h3 class="font-bold">โปรไฟล์นักกีฬา (BIB {{ athlete.bib }} · {{ athlete.country }})</h3>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+            <label>First name<input name="first_name" value="{{ athlete.first_name }}" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Last name<input name="last_name" value="{{ athlete.last_name }}" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Classification<input name="classification" value="{{ athlete.classification }}" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label>Date of birth<input type="date" name="date_of_birth" value="{{ athlete.date_of_birth|date:'Y-m-d' }}" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+            <label class="col-span-2">Phone<input name="phone_number" value="{{ athlete.phone_number }}" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm"></label>
+        </div>
+        <button class="bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-xl text-xs font-medium">Save profile</button>
+    </form>
+    <div class="bg-dark-card border border-dark-border rounded-2xl overflow-x-auto">
+        <div class="p-4 border-b border-dark-border font-bold text-sm">รายการแข่งของฉัน</div>
+        <table class="w-full text-sm"><tbody class="divide-y divide-slate-800/60">
+            {% for e in entries %}<tr class="hover:bg-slate-800/40"><td class="py-3 px-4 text-xs">{{ e.event.date_time|date:"d M Y H:i" }}</td>
+                <td><a href="{% url 'event_detail' e.event.id %}" class="hover:text-brand-400">{{ e.event.name }} {{ e.event.stage }}</a></td>
+                <td class="text-xs text-slate-400">{{ e.event.status }}</td>
+                <td class="text-xs">{% if e.event.status == 'result' %}อันดับ {{ e.rank|default:"-" }} · {{ e.point }} แต้ม{% endif %}</td></tr>
+            {% empty %}<tr><td class="py-6 px-4 text-slate-500 text-xs">ยังไม่ได้ลงแข่งรายการใด (ให้ Agent หรือ Admin เพิ่มชื่อเข้า event)</td></tr>{% endfor %}
+        </tbody></table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

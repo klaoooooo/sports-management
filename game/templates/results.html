@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Results{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-wrap justify-between items-center gap-3 bg-dark-card border border-dark-border p-5 rounded-2xl">
+        <div><h2 class="text-xl font-bold">Results</h2><p class="text-xs text-slate-400 mt-1">ผลการแข่งขัน · Admin และ Judge แก้คะแนนได้</p></div>
+        <div class="flex gap-2 text-xs">
+            <a href="{% url 'results' %}" class="px-3 py-1.5 rounded-lg {% if not status %}bg-brand-600{% else %}bg-slate-800{% endif %}">All</a>
+            <a href="?status=live" class="px-3 py-1.5 rounded-lg {% if status == 'live' %}bg-brand-600{% else %}bg-slate-800{% endif %}">Live</a>
+            <a href="?status=result" class="px-3 py-1.5 rounded-lg {% if status == 'result' %}bg-brand-600{% else %}bg-slate-800{% endif %}">Result</a>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for e in events %}
+        <a href="{% url 'result_detail' e.id %}" class="block bg-dark-card border border-dark-border rounded-2xl p-5 hover:border-brand-500">
+            <div class="flex justify-between"><h3 class="font-bold">[{{ e.number }}] {{ e.name }}</h3>
+                <span class="text-xs px-2 py-0.5 rounded {% if e.status == 'live' %}bg-rose-500/20 text-rose-300{% elif e.status == 'result' %}bg-emerald-500/20 text-emerald-300{% else %}bg-slate-800 text-slate-300{% endif %}">{{ e.status }}</span></div>
+            <p class="text-xs text-slate-400 mt-1">{{ e.gender }} {{ e.classification }} · {{ e.stage }} · {{ e.date_time|date:"d M H:i" }} · {{ e.n }} athletes</p>
+            {% if e.can_edit %}<p class="text-xs text-brand-400 mt-2"><i class="fa-solid fa-pen-to-square mr-1"></i>คุณแก้ผลได้</p>{% endif %}
+        </a>
+        {% empty %}<div class="col-span-full text-center py-12 text-slate-500">ยังไม่มีผลการแข่งขัน</div>{% endfor %}
+    </div>
+</div>
+{% endblock %}

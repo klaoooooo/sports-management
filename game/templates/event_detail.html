@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}{{ event.name }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-dark-card border border-dark-border p-5 rounded-2xl">
+        <a href="{% url 'events' %}" class="text-xs text-slate-400 hover:text-white"><i class="fa-solid fa-arrow-left mr-1"></i>Events</a>
+        <div class="flex flex-wrap justify-between gap-3 mt-2">
+            <div>
+                <h2 class="text-2xl font-bold">[{{ event.number }}] {{ event.name }} <span class="text-base text-slate-400 font-normal">{{ event.gender }} {{ event.classification }} · {{ event.stage }}</span></h2>
+                <p class="text-xs text-slate-400 mt-1"><i class="fa-solid fa-calendar mr-1"></i>{{ event.date_time|date:"d M Y H:i" }}
+                    {% if event.location %} · <i class="fa-solid fa-location-dot mr-1"></i>{{ event.location }}{% endif %}
+                    · Judge: {{ event.judge.username|default:"ไม่กำหนด" }}</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs px-3 py-1 rounded {% if event.status == 'live' %}bg-rose-500/20 text-rose-300{% elif event.status == 'result' %}bg-emerald-500/20 text-emerald-300{% else %}bg-slate-800 text-slate-300{% endif %}">{{ event.status }}</span>
+                {% if event.status != 'start-list' or can_edit_results %}<a href="{% url 'result_detail' event.id %}" class="bg-brand-600 hover:bg-brand-500 px-4 py-1.5 rounded-lg text-xs">{% if can_edit_results %}Edit results{% else %}View results{% endif %}</a>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-dark-card border border-dark-border rounded-2xl overflow-x-auto">
+        <div class="p-4 border-b border-dark-border font-bold">Start list</div>
+        <table class="w-full text-sm">
+            <thead class="bg-slate-900/80 text-xs text-slate-400"><tr><th class="py-3 px-4">Order</th><th class="px-3">BIB</th><th class="px-3">Country</th><th class="px-3">Class</th><th class="px-3 text-left">Athlete</th><th></th></tr></thead>
+            <tbody class="divide-y divide-slate-800/60">
+            {% for e in entries %}
+            <tr class="text-center hover:bg-slate-800/40">
+                <td class="py-3">{{ e.order }}</td><td>{{ e.athlete.bib }}</td><td>{{ e.athlete.country }}</td><td>{{ e.athlete.classification }}</td>
+                <td class="text-left"><a href="{% url 'athlete_detail' e.athlete.id %}" class="hover:text-brand-400">{{ e.athlete.full_name }}</a></td>
+                <td class="px-3">{% if e.can_remove %}<button onclick="removeEntry({{ e.id }})" class="text-xs text-rose-400"><i class="fa-solid fa-xmark"></i></button>{% endif %}</td>
+            </tr>
+            {% empty %}<tr><td colspan="6" class="text-center py-8 text-slate-500">ยังไม่มีนักกีฬาใน event นี้</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if available %}
+    <div class="bg-dark-card border border-dark-border rounded-2xl p-5">
+        <h3 class="font-bold mb-3 text-sm">เพิ่มนักกีฬาเข้า event</h3>
+        <div class="flex flex-wrap gap-3">
+            <select id="add-athlete" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm min-w-64">
+                {% for a in available %}<option value="{{ a.id }}">{{ a.bib }} · {{ a.full_name }} ({{ a.country }} {{ a.classification }})</option>{% endfor %}
+            </select>
+            <button onclick="addEntry()" class="bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-xl text-xs font-medium"><i class="fa-solid fa-plus mr-1"></i>Add</button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function addEntry() { api('/api/event/{{ event.id }}/entry/add/', {athlete_id: val('add-athlete')}).then(() => location.reload()); }
+function removeEntry(id) { if (confirm('เอานักกีฬาออกจาก event นี้?')) api(`/api/entry/${id}/delete/`).then(() => location.reload()); }
+</script>
+{% endblock %}
