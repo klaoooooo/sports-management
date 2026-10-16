@@ -1,4 +1,5 @@
 import json
+import re
 
 from django.contrib import messages
 from django.contrib.auth import login
@@ -106,9 +107,16 @@ def event_detail(request, pk):
             event.status != 'result' or role == 'admin')
         rows.append(e)
 
+    my_athlete = getattr(user, 'athlete', None) if user.is_authenticated else None
+    joined = bool(my_athlete) and any(e.athlete_id == my_athlete.id for e in rows)
+    open_event = event.status == 'start-list'
     return render(request, 'event_detail.html', {
         'event': event, 'entries': rows, 'available': available,
         'can_edit_results': user.is_authenticated and can_edit_results(user, event),
+        'can_join': role == 'sporter' and bool(my_athlete) and open_event and not joined,
+        'can_leave': role == 'sporter' and joined and open_event,
+        'can_claim': role == 'judge' and event.judge_id is None and event.status != 'result',
+        'can_release': role == 'judge' and event.judge_id == user.id and event.status != 'result',
     })
 
 
@@ -339,4 +347,81 @@ def api_result_save(request, pk):
                 event.save()
     except (ValueError, TypeError, KeyError):
         return _err('ข้อมูลไม่ถูกต้อง (คะแนนต้องเป็นตัวเลข เช่น 14.98 หรือ 4:05.30)')
+    return _ok()
+
+
+# ---------------------------------------------------------------- self-service: sporter / judge
+def _class_tokens(text):
+    """'T12/13/20' -> {'T12','T13','T20'}"""
+    tokens, prefix = set(), ''
+    for part in re.split(r'[/,\s]+', (text or '').upper()):
+        if not part:
+            continue
+        m = re.match(r'^([TF])?(\d+)$', part)
+        if m:
+            if m.group(1):
+                prefix = m.group(1)
+            tokens.add(f"{prefix}{m.group(2)}")
+        else:
+            tokens.add(part)
+    return tokens
+
+
+def _ineligible_reason(event, athlete):
+    if athlete.classification.upper() not in _class_tokens(event.classification):
+        return f'Class ของคุณ ({athlete.classification}) ไม่ตรงกับ event นี้ ({event.classification})'
+    if event.gender in ('Men', 'Women') and athlete.gender != event.gender:
+        return f'Event นี้สำหรับ {event.gender} เท่านั้น'
+    return None
+
+
+@require_POST
+@api_roles('sporter')
+def api_event_join(request, pk):
+    event = get_object_or_404(Event, pk=pk)
+    athlete = getattr(request.user, 'athlete', None)
+    if not athlete:
+        return _err('ไม่พบโปรไฟล์นักกีฬาของคุณ')
+    if athlete.classification.strip().upper() in ('', 'TBD'):
+        return _err('กรุณาระบุ Classification ในหน้า My profile ก่อนสมัคร')
+    if event.status != 'start-list':
+        return _err('สมัครได้เฉพาะ event ที่ยังเป็น Start list')
+    reason = _ineligible_reason(event, athlete)
+    if reason:
+        return _err(reason)
+    if CompetesIn.objects.filter(event=event, athlete=athlete).exists():
+        return _err('คุณสมัคร event นี้แล้ว')
+    CompetesIn.objects.create(event=event, athlete=athlete, order=event.competesin_set.count() + 1)
+    return _ok()
+
+
+@require_POST
+@api_roles('sporter')
+def api_event_leave(request, pk):
+    athlete = getattr(request.user, 'athlete', None)
+    entry = get_object_or_404(CompetesIn.objects.select_related('event'), event_id=pk, athlete=athlete)
+    if entry.event.status != 'start-list':
+        return _err('ถอนตัวได้เฉพาะ event ที่ยังเป็น Start list')
+    entry.delete()
+    return _ok()
+
+
+@require_POST
+@api_roles('judge')
+def api_event_judge(request, pk):
+    event = get_object_or_404(Event, pk=pk)
+    action = _body(request).get('action')
+    if event.status == 'result':
+        return _err('Event นี้ประกาศผลแล้ว')
+    if action == 'claim':
+        if event.judge_id and event.judge_id != request.user.id:
+            return _err('Event นี้มีกรรมการแล้ว')
+        event.judge = request.user
+    elif action == 'release':
+        if event.judge_id != request.user.id:
+            return _err('คุณไม่ใช่กรรมการของ event นี้', 403)
+        event.judge = None
+    else:
+        return _err('คำสั่งไม่ถูกต้อง')
+    event.save()
     return _ok()

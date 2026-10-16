@@ -18,6 +18,19 @@
         </div>
     </div>
 
+    {% if can_join or can_leave or can_claim or can_release %}
+    <div class="bg-dark-card border border-brand-500/40 rounded-2xl p-5 flex flex-wrap items-center gap-3">
+        {% if can_join %}<button onclick="act('join')" class="bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-xl text-xs font-medium"><i class="fa-solid fa-user-plus mr-1"></i>Register me for this event</button>
+            <span class="text-xs text-slate-400">ระบบตรวจ class และเพศของคุณให้อัตโนมัติ</span>{% endif %}
+        {% if can_leave %}<span class="text-xs text-emerald-300"><i class="fa-solid fa-check mr-1"></i>คุณสมัคร event นี้แล้ว</span>
+            <button onclick="if(confirm('ถอนตัวจาก event นี้?')) act('leave')" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 px-4 py-2 rounded-xl text-xs">Withdraw</button>{% endif %}
+        {% if can_claim %}<button onclick="judge('claim')" class="bg-brand-600 hover:bg-brand-500 px-5 py-2 rounded-xl text-xs font-medium"><i class="fa-solid fa-gavel mr-1"></i>Assign me as judge</button>
+            <span class="text-xs text-slate-400">event นี้ยังไม่มีกรรมการ</span>{% endif %}
+        {% if can_release %}<span class="text-xs text-emerald-300"><i class="fa-solid fa-gavel mr-1"></i>คุณเป็นกรรมการของ event นี้</span>
+            <button onclick="if(confirm('ถอนตัวจากการเป็นกรรมการ?')) judge('release')" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 px-4 py-2 rounded-xl text-xs">Release</button>{% endif %}
+    </div>
+    {% endif %}
+
     <div class="bg-dark-card border border-dark-border rounded-2xl overflow-x-auto">
         <div class="p-4 border-b border-dark-border font-bold">Start list</div>
         <table class="w-full text-sm">
@@ -50,6 +63,8 @@
 {% block scripts %}
 <script>
 function addEntry() { api('/api/event/{{ event.id }}/entry/add/', {athlete_id: val('add-athlete')}).then(() => location.reload()); }
+function act(a) { api(`/api/event/{{ event.id }}/${a}/`).then(() => location.reload()); }
+function judge(a) { api('/api/event/{{ event.id }}/judge/', {action: a}).then(() => location.reload()); }
 function removeEntry(id) { if (confirm('เอานักกีฬาออกจาก event นี้?')) api(`/api/entry/${id}/delete/`).then(() => location.reload()); }
 </script>
 {% endblock %}

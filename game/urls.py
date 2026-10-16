@@ -27,6 +27,9 @@ urlpatterns = [
     path('api/event/save/', views.api_event_save, name='api_event_save'),
     path('api/event/<int:pk>/delete/', views.api_event_delete, name='api_event_delete'),
     path('api/event/<int:pk>/entry/add/', views.api_entry_add, name='api_entry_add'),
+    path('api/event/<int:pk>/join/', views.api_event_join, name='api_event_join'),
+    path('api/event/<int:pk>/leave/', views.api_event_leave, name='api_event_leave'),
+    path('api/event/<int:pk>/judge/', views.api_event_judge, name='api_event_judge'),
     path('api/entry/<int:pk>/delete/', views.api_entry_delete, name='api_entry_delete'),
     path('api/result/<int:pk>/save/', views.api_result_save, name='api_result_save'),
 ]
